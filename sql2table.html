@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>csv2table</title>
+<title>sql2table</title>
 
 <script src="lib/jquery-3.1.1.min.js"></script>
 
 <style>
-table.resultTable th{
-	border:1px solid black;
-}
-table.resultTable td{
-	border:1px solid black;
-}
+table.resultTable th{ border:1px solid black; }
+table.resultTable td{ border:1px solid black; }
+.hidden{ display:none; }
 
 </style>
 </head>
@@ -23,7 +20,6 @@ table.resultTable td{
 <input type="button" class="btnConvert" value="Convert">
 </div> 
 <div class="tableArea">
-	<p>Table area</p>
 	<form class="tableForm">
 		<table class="resultTable"><tr class="hiddenEnd"></tr></table>
 	</form>
@@ -31,112 +27,125 @@ table.resultTable td{
 <script>
 // ==================== jQuery ==================
 
-//$.noConflict();
+/**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
 function string2array(string,delim=','){
-	var arr = string.split(delim)
-	var arr2 = [];
-	var strBuilder = "";
+	var arr = string.split(delim); var arr2 = []; var strBuilder = "";
 	for(var i=0;i<arr.length;i++){
-		if(arr[i].startsWith("'")){    //1,',,,,,','par1,,,par2,,,par3,,,,',''''''''''',',,'  => 1   ',,,,,'   'par1,,,par2,,,par3,,,,'   '''''''''''    ',,'
-			if(arr[i].endsWith("'") && arr[i].length > 1){	arr2.push(arr[i]); }			
-			else{	
-				strBuilder=arr[i];				
-				i++;
-				if(i<arr.length){
-					strBuilder+=delim+arr[i];
-				}	
-				while(!strBuilder.endsWith("'") && ++i < arr.length){				
-					strBuilder+=delim+arr[i];					
-				}
-				arr2.push(strBuilder);
-				strBuilder="";
+		if(arr[i].startsWith("'")){
+			if(arr[i].endsWith("'") && arr[i].length>1){ arr2.push(arr[i]); }			
+			else{	strBuilder=arr[i]; i++; if(i<arr.length){ strBuilder+=delim+arr[i];}	
+				while(!strBuilder.endsWith("'") && ++i<arr.length){ strBuilder+=delim+arr[i]; }
+				arr2.push(strBuilder); strBuilder="";
 			}
 		}
-		else if(arr[i].startsWith("to_timestamp(")){ 
-			strBuilder+=arr[i]
-			while(!strBuilder.endsWith(")") && ++i<arr.length){
-				strBuilder+=delim+arr[i]
-			}
-			arr2.push(strBuilder);
-			strBuilder="";
+		else if(arr[i].startsWith("to_timestamp(")){ strBuilder+=arr[i];
+			while(!strBuilder.endsWith(")") && ++i<arr.length){ strBuilder+=delim+arr[i]; }
+			arr2.push(strBuilder); strBuilder=""; 
 		}
-		else{arr2.push(arr[i])}
+		else{ arr2.push(arr[i]); }
 	}
-	return arr2
+	return arr2;
 }
-
-function stringOfColumns2htm(stringOfColumns, isTd){
-	return array2row(string2array(stringOfColumns),isTd);
-}
-function array2row(array,isTd=true){
-	var htm="";	
-	switch(isTd){case false: for(var i=0;i<array.length;i++){htm+='<th>'+array[i]+'</th>'};htm='<tr><th></th>'+htm+'</tr>';break;
-							    default: for(var i=0;i<array.length;i++){htm+='<td>'+array[i]+'</td>'};htm='<tr><td></td>'+htm+'</tr>';break; }	
+/**array of [h1,h2,'h3,33',h4] => html of <th>h1</th><th>h2</th><th>'h3,33'</th><th>h4</th>  or <td>h1</td><td>h2</td><td>'h3,33'</td><td>h4</td> */
+function array2cells(array,type='r'){
+	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th>'+array[i]+'</th>'};/*htm='<tr><th></th>'+htm+'</tr>';*/break;
+							 case 'r': for(var i=0;i<array.length;i++){htm+='<td>'+array[i]+'</td>'};/*htm='<tr><td></td>'+htm+'</tr>';*/break; 
+							 default:break;}	
 	return htm;
 }
-
+/**string of h1,h2,'h3,33',h4 => html */
+function stringOfColumns2htm(stringOfColumns, type='r'){ return array2cells(string2array(stringOfColumns),type); }
+function cleanBracketString(string){
+	var stringBuilder=string.toString().trim();	stringBuilder=stringBuilder.replace(/[()]/g, "");
+ 	return stringBuilder.toString().trim();
+}
 function log(str){ console.log(str); }
-var tableList = [];
 
+/**Usage: sqlParser.init() -> sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
 function sqlParser(){
 
 	this.insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
 	// can add updatePtn, deletePtn
   this.commandInsertHeadPtn=/^INSERT\sINTO\s*/i
-  this.tableNamePtn=/^[^,]+[(]/gi
-  this.commandMidValuesPtn = /[)]\s*values\s*[(]/gi
+  this.tableNamePtn=/^[^,]+[(]/g
+  this.commandMidValuesPtn = /[)]\s*VALUES\s*[(]/gi
   this.commandEndPtn = /[)][;]\s*$/g
   this.sqlCommand = "";
   this.tableName = "";
   this.hColumns = "";
   this.rColumns = "";
+  this.init = function(){
+  	this.sqlCommand = "";
+	  this.tableName = "";
+	  this.hColumns = "";
+	  this.rColumns = "";
+  };
   this.parse = function(sqlString){
-        if(this.insertPtn.test(sqlString)){
-      	this.sqlCommand = sqlString.match(this.commandInsertHeadPtn);
-      	var tableName_NRest = sqlString.substring(this.sqlCommand.toString().length);
-      	this.tableName = tableName_NRest.match(this.tableNamePtn);
+    if(this.insertPtn.test(sqlString)){
+	  	this.sqlCommand = sqlString.match(this.commandInsertHeadPtn);
+	  	var tableName_NRest = sqlString.substring(this.sqlCommand.toString().length);
+	  	this.tableName = tableName_NRest.match(this.tableNamePtn);
 
-      	var hColumns_NRest = tableName_NRest.substring(this.tableName.toString().length);
-      	this.commandMidValuesPtn.test(hColumns_NRest)
-      	this.hColumns = hColumns_NRest.substring(0,this.commandMidValuesPtn.lastIndex)
-      	this.rColumns = hColumns_NRest.substring(this.commandMidValuesPtn.lastIndex)
+	  	var hColumns_NRest = tableName_NRest.substring(this.tableName.toString().length);
+	  	this.commandMidValuesPtn.test(hColumns_NRest)
+	  	this.hColumns = hColumns_NRest.substring(0,this.commandMidValuesPtn.lastIndex)
+	  	this.rColumns = hColumns_NRest.substring(this.commandMidValuesPtn.lastIndex)
 
-      	var lenToDump = this.hColumns.match(this.commandMidValuesPtn).toString().length
-      	var hlen = this.hColumns.toString().length;
-      	this.hColumns = this.hColumns.toString().substring(0, hlen-lenToDump).trim();        	
+	  	var lenToDump = this.hColumns.match(this.commandMidValuesPtn).toString().length
+	  	var hlen = this.hColumns.toString().length;
+	  	this.hColumns = this.hColumns.toString().substring(0, hlen-lenToDump).trim();        	
 
-      	var lenToDump = this.rColumns.match(this.commandEndPtn).pop().toString().length;
-      	var rlen = this.rColumns.toString().length;
-      	this.rColumns = this.rColumns.toString().substring(0,rlen-lenToDump).trim();
+	  	var lenToDump = this.rColumns.match(this.commandEndPtn).pop().toString().length;
+	  	var rlen = this.rColumns.toString().length;
+	  	this.rColumns = this.rColumns.toString().substring(0,rlen-lenToDump).trim();
 
-      	// final vars
-      	this.sqlCommand = this.sqlCommand.toString().trim();
-      	this.tableName = cleanBracketString(this.tableName);      	
-      }
+	  	// final vars
+	  	this.sqlCommand = this.sqlCommand.toString().trim();
+	  	this.tableName = cleanBracketString(this.tableName);      	
+  	}
       // can add updatePtn, deletePtn
   }
-
-
+  this.getHtml = function(type='r'){
+  	var htm;
+  	switch(type){
+  		case 'r': htm="<tr><td class='tbcomm'>"+this.sqlCommand+"</td><td class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
+  		case 'h': htm="<tr><th class='hidden'>"+this.sqlCommand+"</th><th class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
+  		default:break;
+  	}
+  	return htm;
+  }
 }
-$(function(){    
-    
+
+
+// =========================================== main ======================================
+$.noConflict();
+
+jQuery( document ).ready(function( $ ) {
+	        //.containsExact("sometext") use like .text("sometext")
+    $.expr[":"].containsExact = function (obj, index, meta, stack) {
+        return (obj.textContent || obj.innerText || $(obj).text() || "") == meta[3];
+    };
+
+
+    var tableList = [];
     $('input.btnConvert').click(function(){
 
         var txt = $('input.csvText').val();
         var parser = new sqlParser();
         parser.parse(txt);
-        $('tr.hiddenEnd').before(stringOfColumns2htm(parser.hColumns,false));
-        $('tr.hiddenEnd').before(stringOfColumns2htm(parser.rColumns,true));
+        var com = parser.sqlCommand;
+        var tname = parser.tableName;
+        var hc = parser.hColumns;
+        var rc = parser.rColumns;
+        // need to know if same table name exists -> only append parser.getHtml('r') if exists
+        $('tr.hiddenEnd').before(parser.getHtml('h'));
+        $('tr.hiddenEnd').before(parser.getHtml('r'));
 
     });
    
 
 });
-function cleanBracketString(string){
-	var stringBuilder=string.toString().trim();
-	stringBuilder=stringBuilder.replace(/[()]/g, "");
- 	return stringBuilder.toString().trim();
-}
+
 
 
 </script>
