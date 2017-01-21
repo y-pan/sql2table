@@ -78,30 +78,91 @@ function array2row(array,isTd=true){
 function log(str){ console.log(str); }
 var tableList = [];
 
+function sqlParser(sqlString){
 
+	this.insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
+  this.commandInsertHeadPtn=/^INSERT\sINTO\s*/i
+  this.tableNamePtn=/^[^,]+[(]/gi
+  this.commandMidValuesPtn = /[)]\s*values\s*[(]/gi
+  this.commandEndPtn = /[)][;]\s*$/g
+  this.sqlCommand = "";
+  this.tableName = "";
+  this.hColumns = "";
+  this.rColumns = "";
+  this.parse = function(){
+        if(insertPtn.test(sqlString)){
+      	this.sqlCommand = sqlString.match(commandInsertHeadPtn);
+      	var tableName_NRest = sqlString.substring(this.sqlCommand.toString().length);
+      	this.tableName = tableName_NRest.match(tableNamePtn);
+
+      	var hColumns_NRest = tableName_NRest.substring(this.tableName.toString().length);
+      	commandMidValuesPtn.test(hColumns_NRest)
+      	this.hColumns = hColumns_NRest.substring(0,commandMidValuesPtn.lastIndex)
+      	this.rColumns = hColumns_NRest.substring(commandMidValuesPtn.lastIndex)
+
+      	var lenToDump = this.hColumns.match(commandMidValuesPtn).toString().length
+      	var hlen = this.hColumns.toString().length;
+      	this.hColumns = this.hColumns.toString().substring(0, hlen-lenToDump).trim();        	
+
+      	var lenToDump = this.rColumns.match(commandEndPtn).pop().toString().length;
+      	var rlen = this.rColumns.toString().length;
+      	this.rColumns = this.rColumns.toString().substring(0,rlen-lenToDump).trim();
+
+      	// final vars
+      	this.sqlCommand = this.sqlCommand.toString().trim();
+      	this.tableName = cleanBracketString(this.tableName);
+      	
+      }
+
+  }
+
+
+}
 $(function(){    
     
     $('input.btnConvert').click(function(){
 
         var txt = $('input.csvText').val();
         var insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
-        var headPtn=/^INSERT\sINTO\s*/i
+        var commandHeadPtn=/^INSERT\sINTO\s*/i
+        var tableNamePtn=/^[^,]+[(]/gi
+        var commandMidValuesPtn = /[)]\s*values\s*[(]/gi
+        var commandEndPtn = /[)][;]\s*$/g
         if(insertPtn.test(txt)){
-        	var head = txt.match(headPtn);
-        	var table_rest = txt.substring(head.toString().length);
-        	log(table_rest)     	
-        	// todo here
+        	var sqlCommand = txt.match(commandHeadPtn);
+        	var tableName_NRest = txt.substring(sqlCommand.toString().length);
+        	var tableName = tableName_NRest.match(tableNamePtn);
+
+        	var hColumns_NRest = tableName_NRest.substring(tableName.toString().length);
+        	commandMidValuesPtn.test(hColumns_NRest)
+        	var hColumns = hColumns_NRest.substring(0,commandMidValuesPtn.lastIndex)
+        	var rColumns = hColumns_NRest.substring(commandMidValuesPtn.lastIndex)
+
+        	var lenToDump = hColumns.match(commandMidValuesPtn).toString().length
+        	var hlen = hColumns.toString().length;
+        	hColumns = hColumns.toString().substring(0, hlen-lenToDump).trim();        	
+
+        	var lenToDump = rColumns.match(commandEndPtn).pop().toString().length;
+        	var rlen = rColumns.toString().length;
+        	rColumns = rColumns.toString().substring(0,rlen-lenToDump).trim();
+
+        	// final vars
+        	sqlCommand = sqlCommand.toString().trim();
+        	tableName = cleanBracketString(tableName);
+        	//hColumns, rColumns
         	
         }
-        //FOLDER_ID,NAME,DESCRIPTION ddd,CREATED_BY,OWNER,CREATED_DATE,RESOLUTION_TP_CD,ENTITY_ACTIVE_IND,LAST_UPDATE_DT,LAST_UPDATE_TX_ID,LAST_UPDATE_USER
-        //$('tr.hiddenEnd').before(array2row(string2array(txt),false));        
-        //$('tr.hiddenEnd').before(array2row(string2array(txt),true));
+
         $('tr.hiddenEnd').before(stringOfColumns2htm(txt,true));
     });
    
 
 });
-   
+function cleanBracketString(string){
+	var stringBuilder=string.toString().trim();
+	stringBuilder=stringBuilder.replace(/[()]/g, "");
+ 	return stringBuilder.toString().trim();
+}
 
 
 </script>
