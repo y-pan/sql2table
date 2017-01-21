@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>csv2table</title>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+<style>
+table.resultTable th{
+	border:1px solid black;
+}
+table.resultTable td{
+	border:1px solid black;
+}
+
+</style>
+</head>
+<body>
+
+<div>
+
+<input type="text" class="csvText" style="width:100%">
+<input type="button" class="btnConvert" value="Convert">
+</div> 
+<div class="tableArea">
+	<p>Table area</p>
+	<form class="tableForm">
+		<table class="resultTable"><tr class="hiddenEnd"></tr></table>
+	</form>
+</div>
+<script>
+// ==================== jQuery ==================
+
+//$.noConflict();
+function string2array(string,delim=','){
+	var arr = string.split(delim)
+	var arr2 = [];
+	var strBuilder = "";
+	for(var i=0;i<arr.length;i++){
+		if(arr[i].startsWith("'")){    //1,',,,,,','par1,,,par2,,,par3,,,,',''''''''''',',,'  => 1   ',,,,,'   'par1,,,par2,,,par3,,,,'   '''''''''''    ',,'
+			if(arr[i].endsWith("'") && arr[i].length > 1){	arr2.push(arr[i]); }			
+			else{	
+				strBuilder=arr[i];				
+				i++;
+				if(i<arr.length){
+					strBuilder+=delim+arr[i];
+				}	
+				while(!strBuilder.endsWith("'") && ++i < arr.length){				
+					strBuilder+=delim+arr[i];					
+				}
+				arr2.push(strBuilder);
+				strBuilder="";
+			}
+		}
+		else if(arr[i].startsWith("to_timestamp(")){ 
+			strBuilder+=arr[i]
+			while(!strBuilder.endsWith(")") && ++i<arr.length){
+				strBuilder+=delim+arr[i]
+			}
+			arr2.push(strBuilder);
+			strBuilder="";
+		}
+		else{arr2.push(arr[i])}
+	}
+	return arr2
+}
+
+function stringOfColumns2htm(stringOfColumns, isTd){
+	return array2row(string2array(stringOfColumns),isTd);
+}
+function array2row(array,isTd=true){
+	var htm="";	
+	switch(isTd){case false: for(var i=0;i<array.length;i++){htm+='<th>'+array[i]+'</th>'};htm='<tr><th></th>'+htm+'</tr>';break;
+							    default: for(var i=0;i<array.length;i++){htm+='<td>'+array[i]+'</td>'};htm='<tr><td></td>'+htm+'</tr>';break; }	
+	return htm;
+}
+
+function log(str){ console.log(str); }
+var tableList = [];
+
+
+$(function(){    
+    
+    $('input.btnConvert').click(function(){
+
+        var txt = $('input.csvText').val();
+        var insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
+        var headPtn=/^INSERT\sINTO\s*/i
+        if(insertPtn.test(txt)){
+        	var head = txt.match(headPtn);
+        	var table_rest = txt.substring(head.toString().length);
+        	log(table_rest)     	
+        	// todo here
+        	
+        }
+        //FOLDER_ID,NAME,DESCRIPTION ddd,CREATED_BY,OWNER,CREATED_DATE,RESOLUTION_TP_CD,ENTITY_ACTIVE_IND,LAST_UPDATE_DT,LAST_UPDATE_TX_ID,LAST_UPDATE_USER
+        //$('tr.hiddenEnd').before(array2row(string2array(txt),false));        
+        //$('tr.hiddenEnd').before(array2row(string2array(txt),true));
+        $('tr.hiddenEnd').before(stringOfColumns2htm(txt,true));
+    });
+   
+
+});
+   
+
+
+</script>
+</body>
+</html>
