@@ -3,7 +3,7 @@
 <head>
 <title>csv2table</title>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="lib/jquery-3.1.1.min.js"></script>
 
 <style>
 table.resultTable th{
@@ -78,9 +78,10 @@ function array2row(array,isTd=true){
 function log(str){ console.log(str); }
 var tableList = [];
 
-function sqlParser(sqlString){
+function sqlParser(){
 
 	this.insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
+	// can add updatePtn, deletePtn
   this.commandInsertHeadPtn=/^INSERT\sINTO\s*/i
   this.tableNamePtn=/^[^,]+[(]/gi
   this.commandMidValuesPtn = /[)]\s*values\s*[(]/gi
@@ -89,31 +90,30 @@ function sqlParser(sqlString){
   this.tableName = "";
   this.hColumns = "";
   this.rColumns = "";
-  this.parse = function(){
-        if(insertPtn.test(sqlString)){
-      	this.sqlCommand = sqlString.match(commandInsertHeadPtn);
+  this.parse = function(sqlString){
+        if(this.insertPtn.test(sqlString)){
+      	this.sqlCommand = sqlString.match(this.commandInsertHeadPtn);
       	var tableName_NRest = sqlString.substring(this.sqlCommand.toString().length);
-      	this.tableName = tableName_NRest.match(tableNamePtn);
+      	this.tableName = tableName_NRest.match(this.tableNamePtn);
 
       	var hColumns_NRest = tableName_NRest.substring(this.tableName.toString().length);
-      	commandMidValuesPtn.test(hColumns_NRest)
-      	this.hColumns = hColumns_NRest.substring(0,commandMidValuesPtn.lastIndex)
-      	this.rColumns = hColumns_NRest.substring(commandMidValuesPtn.lastIndex)
+      	this.commandMidValuesPtn.test(hColumns_NRest)
+      	this.hColumns = hColumns_NRest.substring(0,this.commandMidValuesPtn.lastIndex)
+      	this.rColumns = hColumns_NRest.substring(this.commandMidValuesPtn.lastIndex)
 
-      	var lenToDump = this.hColumns.match(commandMidValuesPtn).toString().length
+      	var lenToDump = this.hColumns.match(this.commandMidValuesPtn).toString().length
       	var hlen = this.hColumns.toString().length;
       	this.hColumns = this.hColumns.toString().substring(0, hlen-lenToDump).trim();        	
 
-      	var lenToDump = this.rColumns.match(commandEndPtn).pop().toString().length;
+      	var lenToDump = this.rColumns.match(this.commandEndPtn).pop().toString().length;
       	var rlen = this.rColumns.toString().length;
       	this.rColumns = this.rColumns.toString().substring(0,rlen-lenToDump).trim();
 
       	// final vars
       	this.sqlCommand = this.sqlCommand.toString().trim();
-      	this.tableName = cleanBracketString(this.tableName);
-      	
+      	this.tableName = cleanBracketString(this.tableName);      	
       }
-
+      // can add updatePtn, deletePtn
   }
 
 
@@ -123,37 +123,11 @@ $(function(){
     $('input.btnConvert').click(function(){
 
         var txt = $('input.csvText').val();
-        var insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
-        var commandHeadPtn=/^INSERT\sINTO\s*/i
-        var tableNamePtn=/^[^,]+[(]/gi
-        var commandMidValuesPtn = /[)]\s*values\s*[(]/gi
-        var commandEndPtn = /[)][;]\s*$/g
-        if(insertPtn.test(txt)){
-        	var sqlCommand = txt.match(commandHeadPtn);
-        	var tableName_NRest = txt.substring(sqlCommand.toString().length);
-        	var tableName = tableName_NRest.match(tableNamePtn);
+        var parser = new sqlParser();
+        parser.parse(txt);
+        $('tr.hiddenEnd').before(stringOfColumns2htm(parser.hColumns,false));
+        $('tr.hiddenEnd').before(stringOfColumns2htm(parser.rColumns,true));
 
-        	var hColumns_NRest = tableName_NRest.substring(tableName.toString().length);
-        	commandMidValuesPtn.test(hColumns_NRest)
-        	var hColumns = hColumns_NRest.substring(0,commandMidValuesPtn.lastIndex)
-        	var rColumns = hColumns_NRest.substring(commandMidValuesPtn.lastIndex)
-
-        	var lenToDump = hColumns.match(commandMidValuesPtn).toString().length
-        	var hlen = hColumns.toString().length;
-        	hColumns = hColumns.toString().substring(0, hlen-lenToDump).trim();        	
-
-        	var lenToDump = rColumns.match(commandEndPtn).pop().toString().length;
-        	var rlen = rColumns.toString().length;
-        	rColumns = rColumns.toString().substring(0,rlen-lenToDump).trim();
-
-        	// final vars
-        	sqlCommand = sqlCommand.toString().trim();
-        	tableName = cleanBracketString(tableName);
-        	//hColumns, rColumns
-        	
-        }
-
-        $('tr.hiddenEnd').before(stringOfColumns2htm(txt,true));
     });
    
 
