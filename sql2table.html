@@ -28,7 +28,7 @@ table.resultTable td{ border:1px solid black; }
 // ==================== jQuery ==================
 
 /**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
-function string2array(string,delim=','){
+function stringOfColumns2array(string,delim=','){
 	var arr = string.split(delim); var arr2 = []; var strBuilder = "";
 	for(var i=0;i<arr.length;i++){
 		if(arr[i].startsWith("'")){
@@ -47,23 +47,24 @@ function string2array(string,delim=','){
 	return arr2;
 }
 /**array of [h1,h2,'h3,33',h4] => html of <th>h1</th><th>h2</th><th>'h3,33'</th><th>h4</th>  or <td>h1</td><td>h2</td><td>'h3,33'</td><td>h4</td> */
-function array2cells(array,type='r'){
+function arrayOfColumns2cells(array,type='r'){
 	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th>'+array[i]+'</th>'};/*htm='<tr><th></th>'+htm+'</tr>';*/break;
 							 case 'r': for(var i=0;i<array.length;i++){htm+='<td>'+array[i]+'</td>'};/*htm='<tr><td></td>'+htm+'</tr>';*/break; 
 							 default:break;}	
 	return htm;
 }
 /**string of h1,h2,'h3,33',h4 => html */
-function stringOfColumns2htm(stringOfColumns, type='r'){ return array2cells(string2array(stringOfColumns),type); }
+function stringOfColumns2htm(stringOfColumns, type='r'){ return arrayOfColumns2cells(stringOfColumns2array(stringOfColumns),type); }
 function cleanBracketString(string){
 	var stringBuilder=string.toString().trim();	stringBuilder=stringBuilder.replace(/[()]/g, "");
  	return stringBuilder.toString().trim();
 }
 function log(str){ console.log(str); }
 
-/**Usage: sqlParser.init() -> sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
-function sqlParser(){
-
+/**
+assume that always parsing complete sql statement(s)
+Usage: sqlParser.init() -> sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
+function sqlParser(){ 
 	this.insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
 	// can add updatePtn, deletePtn
   this.commandInsertHeadPtn=/^INSERT\sINTO\s*/i
@@ -114,38 +115,65 @@ function sqlParser(){
   	}
   	return htm;
   }
-}
+  this.getArray = function(type='r'){
+  	var arr;
+  	switch(type){
+  		case 'r': arr=stringOfColumns2array(this.rColumns,type);break;
+  		case 'h': arr=stringOfColumns2array(this.hColumns,type);break;
+  		default:break;
+  	}
+  	return arr;
+  }
+}// ***endOf sqlParser
 
 
 // =========================================== main ======================================
 $.noConflict();
 
 jQuery( document ).ready(function( $ ) {
-	        //.containsExact("sometext") use like .text("sometext")
-    $.expr[":"].containsExact = function (obj, index, meta, stack) {
-        return (obj.textContent || obj.innerText || $(obj).text() || "") == meta[3];
-    };
+  //.containsExact("sometext") use like .text("sometext")
+  $.expr[":"].containsExact = function (obj, index, meta, stack) {
+      return (obj.textContent || obj.innerText || $(obj).text() || "") == meta[3];
+  };
+
+  var tableList = [];
+  $('input.btnConvert').click(function(){ // assume that always parsing complete sql statement(s)
+
+      var txt = $('input.csvText').val();
+      var parser = new sqlParser();
+      parser.parse(txt);
+      var com = parser.sqlCommand;
+      var tname = parser.tableName;
+      var hc = parser.hColumns;
+      var rc = parser.rColumns;
+      // need to know if same table name exists -> only append parser.getHtml('r') if exists
 
 
-    var tableList = [];
-    $('input.btnConvert').click(function(){
+      $('tr.hiddenEnd').before(parser.getHtml('h'));
 
-        var txt = $('input.csvText').val();
-        var parser = new sqlParser();
-        parser.parse(txt);
-        var com = parser.sqlCommand;
-        var tname = parser.tableName;
-        var hc = parser.hColumns;
-        var rc = parser.rColumns;
-        // need to know if same table name exists -> only append parser.getHtml('r') if exists
-        $('tr.hiddenEnd').before(parser.getHtml('h'));
-        $('tr.hiddenEnd').before(parser.getHtml('r'));
+      $('tr.hiddenEnd').before(parser.getHtml('r'));
 
-    });
+  });// ***endOf btnConvert.click
    
 
 });
 
+function sqlRecorder(){
+	this.records=[];
+	this.seq=0;
+	this.init = function(){
+		this.records=[];
+		this.seq=0;
+	}
+	this.getId = function(){
+		return ++this.seq;
+	}
+
+	this.add = function(sqlCommand,tableName,hArray,rArray){
+		var rec = {id:this.getId(),com:sqlCommand,table:tableName,head:hArray,row:rArray}
+		this.records.push(this.record);
+	}
+}
 
 
 </script>
