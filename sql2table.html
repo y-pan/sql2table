@@ -6,10 +6,20 @@
 <script src="lib/jquery-3.1.1.min.js"></script>
 
 <style>
+table {
+  border-collapse: collapse;
+}
 table.resultTable th{ border:1px solid black; }
 table.resultTable td{ border:1px solid black; }
 .hidden{ display:none; }
-
+.highlight{
+	background-color: #ced1ff;	
+}
+.trackMarker{
+	font-style: italic;
+	font-weight: bold;
+	color:red;
+}
 </style>
 </head>
 <body>
@@ -26,6 +36,8 @@ table.resultTable td{ border:1px solid black; }
 </div>
 <script>
 // ==================== jQuery ==================
+
+
 
 /**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
 function stringOfColumns2array(string,delim=','){
@@ -60,7 +72,9 @@ function cleanBracketString(string){
  	return stringBuilder.toString().trim();
 }
 function log(str){ console.log(str); }
-
+function hasClass(element, cls) {
+    return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+}
 /**
 assume that always parsing complete sql statement(s)
 Usage: sqlParser.init() -> sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
@@ -79,12 +93,12 @@ function sqlParser(){
   this.state=0; //0-init, 1-ready/prepared, 2-used    need to be 1 to do next job, 3-error, cannot getHtml(), getArray(), getJson()
 
   this.init = function(){
-  	this.state=0;
   	this.id=0;
   	this.sqlCommand = "";
 	  this.tableName = "";
 	  this.hColumns = "";
 	  this.rColumns = "";
+  	this.state=0;
   }
   this.prepare = function(){
   	this.sqlCommand = "";
@@ -128,8 +142,8 @@ function sqlParser(){
   	if(this.state==3){return null;}
   	var htm;
   	switch(type){
-  		case 'r': htm="<tr data-id="+this.id+"><td class='tbcomm'>"+this.sqlCommand+"</td><td class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
-  		case 'h': htm="<tr data-id="+this.id+"><th class='hidden'>"+this.sqlCommand+"</th><th class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
+  		case 'r': htm="<tr class='responsable' data-id="+this.id+"><td class='tbcomm'>"+this.sqlCommand+"</td><td class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
+  		case 'h': htm="<tr class='responsable' data-id="+this.id+"><th class='hidden'>"+this.sqlCommand+"</th><th class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
   		default:break;
   	}
   	return htm;
@@ -170,8 +184,21 @@ function sqlRecorder(){
 	this.getLast = function(){ return this.records[this.records.length-1]; }
 } // ***endOf sqlRecorder
 
+function uiTracker(){
+	this.now;
+	this.marker = "trackMarker";
+	this.eraseMarker = function(ele){ if(ele){ele.className=""} } 	
+	this.addMarker = function(ele){ if(ele){ele.className=this.marker} } 	
+
+	this.track = function(ele){
+		if(hasClass(ele,this.marker)){this.eraseMarker(ele)}
+		else{this.eraseMarker(this.now);this.now=ele;this.addMarker(this.now);}		
+	}
+}
+
 // =========================================== main ======================================
 $.noConflict();
+
 
 jQuery( document ).ready(function( $ ) {
   //.containsExact("sometext") use like .text("sometext")
@@ -181,7 +208,7 @@ jQuery( document ).ready(function( $ ) {
 
   var parser = new sqlParser();
   var recorder = new sqlRecorder();
-
+  var tracker = new uiTracker();
   $('input.btnConvert').click(function(){ // assume that always parsing complete sql statement(s)
       var txt = $('input.csvText').val();
       parser.parse(txt);
@@ -190,10 +217,26 @@ jQuery( document ).ready(function( $ ) {
       $('tr.hiddenEnd').before(parser.getHtml('h'));
       $('tr.hiddenEnd').before(parser.getHtml('r'));
 			parser.prepare();
-      log(recorder.getLast());
+      //log(recorder.getLast());
 
   });// ***endOf btnConvert.click
-   
+  // event
+  $( document ).on( 'mouseover', 'tr.responsable', function(event) {   $(this).addClass('highlight')	})
+  						.on( 'mouseleave', 'tr.responsable', function(event) {   $(this).removeClass('highlight')	})
+  						.on( 'dblclick', 'tr.responsable', function(event) {   
+  							var id = $(this).attr('data-id');
+  							var tds = $(this).children();
+  							var px=event.pageX;
+  							var py=event.pageY;
+  							var element = document.elementFromPoint(px, py);
+  							tracker.track(element);
+  							//var x = eventx
+  							//var el = event.currentTarget;					
+
+  							//log(id)//$(this).removeClass('highlight')	
+  							//log(element);
+  						})
+
 
 });
 
