@@ -16,10 +16,69 @@ table.resultTable td{ border:1px solid black; }
 	background-color: #ced1ff;	
 }
 .trackMarker{
-	font-style: italic;
-	font-weight: bold;
+	font-style: italic;	
 	color:red;
 }
+.popupOn{
+	display: block !important;
+}
+.popupOff{
+	display: none !important;
+}
+#popupTrackerMenu{
+	background-color: #34dbca;
+	opacity: .8;
+	width: 7em;
+	height:8em;
+	position: absolute;
+	top:10px;
+	left:50px;
+	border-radius: 1em;
+	display: none;
+}
+#popupTrackerMenu:hover{
+	opacity: 1;
+}
+ul.plainMenu{
+	list-style-type:none;
+	padding: 1em;
+	margin:0;
+}
+ul.plainMenu li{
+	width:100%;
+}
+input.popupMenuBtn{
+		width:100%;	
+    border: none;
+    color: #fff;
+
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+}
+.bgGreen{
+	background-color: #54ba25;
+}
+.bgBlue{
+	background-color: #1a8899;
+}
+.bgRed{
+	background-color: #991a59;
+}
+.bgGray{
+	background-color: #3e3a42;
+}
+
+input.popupMenuBtn:hover{
+	-webkit-transition-duration: 0.2s; /* Safari */
+    transition-duration: 0.2s;
+	 	background-color: #fff; /* Green */
+    color: #000;
+}
+
+
+
 </style>
 </head>
 <body>
@@ -34,9 +93,54 @@ table.resultTable td{ border:1px solid black; }
 		<table class="resultTable"><tr class="hiddenEnd"></tr></table>
 	</form>
 </div>
+<span id="popupTrackerMenu">
+	<ul class="plainMenu">
+		<li><input id="popupEditBtn" class="popupMenuBtn bgGreen" type="button" value="Edit Cell"><input id="popupEditText" class="hidden" type="text" name=""></li>
+		<li><input id="popupAddBtn" class="popupMenuBtn bgBlue" type="button" value="Add Cell"></li>
+		<li><input id="popupDeleteBtn" class="popupMenuBtn bgRed" type="button" value="Delete Cell"></li>
+		<hr>
+		<li><input id="popupCloseBtn" class="popupMenuBtn bgGray" type="button" value="Close"></li>
+	</ul>
+</span>
 <script>
 // ==================== jQuery ==================
 
+
+
+
+function uiTracker(){
+	this.now;
+	this.marker = "trackMarker";
+	this.eraseMarker = function(ele,x,y){ if(ele){ele.className="";} showHide_popupTrackerMenu(false,x,y);} 	
+	this.addMarker = function(ele,x,y){ if(ele){ele.className=this.marker; showHide_popupTrackerMenu(true,x,y)}} 	
+
+	this.track = function(ele,x,y){
+		//if(hasClass(ele,this.marker)){ this.eraseMarker(ele,x,y); }
+		if(ele.classList.contains(this.marker)){ this.eraseMarker(ele,x,y); }
+		else{ this.eraseMarker(this.now,x,y);this.now=ele;this.addMarker(this.now,x,y); }		
+	}
+}
+
+function showHide_popupTrackerMenu(isOn,x,y){	
+	var e=document.getElementById("popupTrackerMenu");
+	if(!e){return null;}
+	if(isOn){
+		log("turn on")
+		/*if(hasClass(e,'popupOff')){e.classList.remove('popupOff');}*/
+		//if(!hasClass(e,'popupOn')){e.classList.add('popupOn');}
+		if(!e.classList.contains("popupOn")){e.classList.add('popupOn');}
+		e.style.left = x+'px';
+		e.style.top = y+'px';
+	}
+	else{		
+		log("turn off")
+		//if(hasClass(e,'popupOn')){e.classList.remove('popupOn');}
+		if(e.classList.contains("popupOn")){e.classList.remove('popupOn');}
+
+		/*if(!hasClass(e,'popupOff')){e.classList.add('popupOff');}*/
+	}
+
+}
 
 
 /**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
@@ -60,8 +164,8 @@ function stringOfColumns2array(string,delim=','){
 }
 /**array of [h1,h2,'h3,33',h4] => html of <th>h1</th><th>h2</th><th>'h3,33'</th><th>h4</th>  or <td>h1</td><td>h2</td><td>'h3,33'</td><td>h4</td> */
 function arrayOfColumns2cells(array,type='r'){
-	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th>'+array[i]+'</th>'};break;
-							 case 'r': for(var i=0;i<array.length;i++){htm+='<td>'+array[i]+'</td>'};break; 
+	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th data-cid='+i+'>'+array[i]+'</th>'};break;
+							 case 'r': for(var i=0;i<array.length;i++){htm+='<td data-cid='+i+'>'+array[i]+'</td>'};break; 
 							 default:break;}	
 	return htm;
 }
@@ -109,7 +213,7 @@ function sqlParser(){
   }
   this.increaseId = function(){ this.id++; }
   this.parse = function(sqlString){
-  	log(this.state);
+  	//log(this.state);
   	if(this.state>=2){ return null; }
 
     if(this.insertPtn.test(sqlString)){
@@ -142,8 +246,8 @@ function sqlParser(){
   	if(this.state==3){return null;}
   	var htm;
   	switch(type){
-  		case 'r': htm="<tr class='responsable' data-id="+this.id+"><td class='tbcomm'>"+this.sqlCommand+"</td><td class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
-  		case 'h': htm="<tr class='responsable' data-id="+this.id+"><th class='hidden'>"+this.sqlCommand+"</th><th class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
+  		case 'r': htm="<tr class='responsable' data-id="+this.id+"><td data-cid='-2' class='tbcomm'>"+this.sqlCommand+"</td><td data-cid='-1' class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
+  		case 'h': htm="<tr class='responsable' data-id="+this.id+"><th data-cid='-2' class='hidden'>"+this.sqlCommand+"</th><th data-cid='-1' class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
   		default:break;
   	}
   	return htm;
@@ -184,17 +288,6 @@ function sqlRecorder(){
 	this.getLast = function(){ return this.records[this.records.length-1]; }
 } // ***endOf sqlRecorder
 
-function uiTracker(){
-	this.now;
-	this.marker = "trackMarker";
-	this.eraseMarker = function(ele){ if(ele){ele.className=""} } 	
-	this.addMarker = function(ele){ if(ele){ele.className=this.marker} } 	
-
-	this.track = function(ele){
-		if(hasClass(ele,this.marker)){this.eraseMarker(ele)}
-		else{this.eraseMarker(this.now);this.now=ele;this.addMarker(this.now);}		
-	}
-}
 
 // =========================================== main ======================================
 $.noConflict();
@@ -209,6 +302,7 @@ jQuery( document ).ready(function( $ ) {
   var parser = new sqlParser();
   var recorder = new sqlRecorder();
   var tracker = new uiTracker();
+  var trackId,trackCid;
   $('input.btnConvert').click(function(){ // assume that always parsing complete sql statement(s)
       var txt = $('input.csvText').val();
       parser.parse(txt);
@@ -221,25 +315,38 @@ jQuery( document ).ready(function( $ ) {
 
   });// ***endOf btnConvert.click
   // event
+
   $( document ).on( 'mouseover', 'tr.responsable', function(event) {   $(this).addClass('highlight')	})
   						.on( 'mouseleave', 'tr.responsable', function(event) {   $(this).removeClass('highlight')	})
   						.on( 'dblclick', 'tr.responsable', function(event) {   
-  							var id = $(this).attr('data-id');
-  							var tds = $(this).children();
+  							trackId = $(this).attr('data-id');							
+  						})
+  						.on( 'dblclick', 'tr.responsable>td,th', function(event){
+  							trackCid = $(this).attr('data-cid');
+  							log("id,cid = "+trackId+","+trackCid);
   							var px=event.pageX;
   							var py=event.pageY;
-  							var element = document.elementFromPoint(px, py);
-  							tracker.track(element);
-  							//var x = eventx
-  							//var el = event.currentTarget;					
-
-  							//log(id)//$(this).removeClass('highlight')	
-  							//log(element);
+  							//var element = document.elementFromPoint(px, py);
+  							//tracker.track(element,px,py);
+  							var trackTag = event.target.tagName;
+  							var trackText = event.target.innerText;
+  							
+  							log(getCell(trackTag, trackId, trackCid));
   						})
 
 
 });
-
+function getCell(tag='TD',id,cid){
+	this.x;
+	this.y;
+	this.popX;
+	this.popY;
+	this.text;
+	// 1 get row by data-id
+	// 2 get cell by data-cid
+	var cells = document.getElementsByTagName(tag);
+	log(cells.length)
+}
 
 
 
