@@ -105,44 +105,6 @@ input.popupMenuBtn:hover{
 <script>
 // ==================== jQuery ==================
 
-
-
-
-function uiTracker(){
-	this.now;
-	this.marker = "trackMarker";
-	this.eraseMarker = function(ele,x,y){ if(ele){ele.className="";} showHide_popupTrackerMenu(false,x,y);} 	
-	this.addMarker = function(ele,x,y){ if(ele){ele.className=this.marker; showHide_popupTrackerMenu(true,x,y)}} 	
-
-	this.track = function(ele,x,y){
-		//if(hasClass(ele,this.marker)){ this.eraseMarker(ele,x,y); }
-		if(ele.classList.contains(this.marker)){ this.eraseMarker(ele,x,y); }
-		else{ this.eraseMarker(this.now,x,y);this.now=ele;this.addMarker(this.now,x,y); }		
-	}
-}
-
-function showHide_popupTrackerMenu(isOn,x,y){	
-	var e=document.getElementById("popupTrackerMenu");
-	if(!e){return null;}
-	if(isOn){
-		log("turn on")
-		/*if(hasClass(e,'popupOff')){e.classList.remove('popupOff');}*/
-		//if(!hasClass(e,'popupOn')){e.classList.add('popupOn');}
-		if(!e.classList.contains("popupOn")){e.classList.add('popupOn');}
-		e.style.left = x+'px';
-		e.style.top = y+'px';
-	}
-	else{		
-		log("turn off")
-		//if(hasClass(e,'popupOn')){e.classList.remove('popupOn');}
-		if(e.classList.contains("popupOn")){e.classList.remove('popupOn');}
-
-		/*if(!hasClass(e,'popupOff')){e.classList.add('popupOff');}*/
-	}
-
-}
-
-
 /**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
 function stringOfColumns2array(string,delim=','){
 	var arr = string.split(delim); var arr2 = []; var strBuilder = "";
@@ -163,14 +125,14 @@ function stringOfColumns2array(string,delim=','){
 	return arr2;
 }
 /**array of [h1,h2,'h3,33',h4] => html of <th>h1</th><th>h2</th><th>'h3,33'</th><th>h4</th>  or <td>h1</td><td>h2</td><td>'h3,33'</td><td>h4</td> */
-function arrayOfColumns2cells(array,type='r'){
-	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th data-cid='+i+'>'+array[i]+'</th>'};break;
-							 case 'r': for(var i=0;i<array.length;i++){htm+='<td data-cid='+i+'>'+array[i]+'</td>'};break; 
+function arrayOfColumns2cells(array,type='r',dataId){
+	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th data-id='+dataId+' data-cid='+i+'>'+array[i]+'</th>'};break;
+							 case 'r': for(var i=0;i<array.length;i++){htm+='<td data-id='+dataId+' data-cid='+i+'>'+array[i]+'</td>'};break; 
 							 default:break;}	
 	return htm;
 }
 /**string of h1,h2,'h3,33',h4 => html */
-function stringOfColumns2htm(stringOfColumns, type='r'){ return arrayOfColumns2cells(stringOfColumns2array(stringOfColumns),type); }
+function stringOfColumns2htm(stringOfColumns, type='r',dataId){ return arrayOfColumns2cells(stringOfColumns2array(stringOfColumns),type,dataId); }
 function cleanBracketString(string){
 	var stringBuilder=string.toString().trim();	stringBuilder=stringBuilder.replace(/[()]/g, "");
  	return stringBuilder.toString().trim();
@@ -181,7 +143,7 @@ function hasClass(element, cls) {
 }
 /**
 assume that always parsing complete sql statement(s)
-Usage: sqlParser.init() -> sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
+Usage: sqlParser.parse(sqlstring) -> get properties: sqlParser.sqlCommand (others like: tableName,hColumns,rColumns)*/
 function sqlParser(){ 
 	this.insertPtn = /^INSERT\s{1,}INTO\s.*[)]\s*VALUES\s*[(].*$/i;
 	// can add updatePtn, deletePtn
@@ -204,8 +166,7 @@ function sqlParser(){
 	  this.rColumns = "";
   	this.state=0;
   }
-  this.prepare = function(){
-  	this.sqlCommand = "";
+  this.prepare = function(){ 
 	  this.tableName = "";
 	  this.hColumns = "";
 	  this.rColumns = "";
@@ -213,7 +174,7 @@ function sqlParser(){
   }
   this.increaseId = function(){ this.id++; }
   this.parse = function(sqlString){
-  	//log(this.state);
+  	this.prepare();
   	if(this.state>=2){ return null; }
 
     if(this.insertPtn.test(sqlString)){
@@ -239,15 +200,15 @@ function sqlParser(){
 	  	this.tableName = cleanBracketString(this.tableName); 
 
 	  	this.state=2;  	
-  	} else { this.state=3; }
+  	} else { /*error state*/this.state=3; }
       // can add updatePtn, deletePtn  	
   }
   this.getHtml = function(type='r'){
   	if(this.state==3){return null;}
-  	var htm;
+  	var htm; var idx =this.id+""+type;
   	switch(type){
-  		case 'r': htm="<tr class='responsable' data-id="+this.id+"><td data-cid='-2' class='tbcomm'>"+this.sqlCommand+"</td><td data-cid='-1' class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type)+"</tr>";break;
-  		case 'h': htm="<tr class='responsable' data-id="+this.id+"><th data-cid='-2' class='hidden'>"+this.sqlCommand+"</th><th data-cid='-1' class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type)+"</tr>";break;
+  		case 'r': htm="<tr data-id="+idx+" class='responsable'><td data-id="+idx+" data-cid='-2' class='tbcomm'>"+this.sqlCommand+"</td><td data-id="+idx+" data-cid='-1' class='tbname hidden'>"+this.tableName+"</td>"+stringOfColumns2htm(this.rColumns,type,idx)+"</tr>";break;
+  		case 'h': htm="<tr data-id="+idx+" class='responsable'><th data-id="+idx+" data-cid='-2' class='hidden'>"+this.sqlCommand+"</th><th data-id="+idx+" data-cid='-1' class='tbname'>"+this.tableName+"</th>"+stringOfColumns2htm(this.hColumns,type,idx)+"</tr>";break;
   		default:break;
   	}
   	return htm;
@@ -288,6 +249,12 @@ function sqlRecorder(){
 	this.getLast = function(){ return this.records[this.records.length-1]; }
 } // ***endOf sqlRecorder
 
+/**data-id for each row/tr is unique: 3h,3r*/
+function getTrByAtt(attrName='data-id',attrValue){
+	var rows=document.getElementsByTagName('TR');
+	for(var i=0;i<rows.length;i++){ if(rows[i].getAttribute(attrName)==attrValue) return rows[i] }
+	return null;
+}
 
 // =========================================== main ======================================
 $.noConflict();
@@ -301,8 +268,8 @@ jQuery( document ).ready(function( $ ) {
 
   var parser = new sqlParser();
   var recorder = new sqlRecorder();
-  var tracker = new uiTracker();
-  var trackId,trackCid;
+  var tracker = new cellTracker();
+  //var cell = new CellFinder();
   $('input.btnConvert').click(function(){ // assume that always parsing complete sql statement(s)
       var txt = $('input.csvText').val();
       parser.parse(txt);
@@ -310,7 +277,7 @@ jQuery( document ).ready(function( $ ) {
       // need to know if same table name exists -> only append parser.getHtml('r') if exists
       $('tr.hiddenEnd').before(parser.getHtml('h'));
       $('tr.hiddenEnd').before(parser.getHtml('r'));
-			parser.prepare();
+			//parser.prepare();
       //log(recorder.getLast());
 
   });// ***endOf btnConvert.click
@@ -318,35 +285,96 @@ jQuery( document ).ready(function( $ ) {
 
   $( document ).on( 'mouseover', 'tr.responsable', function(event) {   $(this).addClass('highlight')	})
   						.on( 'mouseleave', 'tr.responsable', function(event) {   $(this).removeClass('highlight')	})
-  						.on( 'dblclick', 'tr.responsable', function(event) {   
-  							trackId = $(this).attr('data-id');							
-  						})
+  						/*.on( 'dblclick', 'tr.responsable', function(event) { d_id="";d_id = $(this).attr('data-id') })*/
   						.on( 'dblclick', 'tr.responsable>td,th', function(event){
-  							trackCid = $(this).attr('data-cid');
-  							log("id,cid = "+trackId+","+trackCid);
-  							var px=event.pageX;
-  							var py=event.pageY;
-  							//var element = document.elementFromPoint(px, py);
+  							var d_id = $(this).attr('data-id')
+  							var d_cid = $(this).attr('data-cid');
+
   							//tracker.track(element,px,py);
-  							var trackTag = event.target.tagName;
-  							var trackText = event.target.innerText;
-  							
-  							log(getCell(trackTag, trackId, trackCid));
+
+  							tracker.trackCell(d_id, d_cid)
+  							log("cell@ "+tracker.x+","+tracker.y+","+tracker.w+","+tracker.h);
   						})
 
 
 });
-function getCell(tag='TD',id,cid){
+// ======================================= end of main ============================================
+function cellTracker(){
+	this.now;
+	this.cell;
+	this.marker = "trackMarker";
 	this.x;
 	this.y;
-	this.popX;
-	this.popY;
+	this.w;
+	this.h;
 	this.text;
-	// 1 get row by data-id
-	// 2 get cell by data-cid
-	var cells = document.getElementsByTagName(tag);
-	log(cells.length)
+	this.d_id;
+	this.d_cid;
+	
+
+	this.eraseMarker = function(ele,x,y){ if(ele){ele.className="";} showHide_popupTrackerMenu(false,x,y);} 	
+	this.addMarker = function(ele,x,y){ if(ele){ele.className=this.marker; showHide_popupTrackerMenu(true,x,y)}} 
+
+	this.reset = function(){
+		this.x="";
+		this.y="";
+		this.w="";
+		this.h="";
+		this.text="";
+		this.d_id="";
+		this.d_cid="";
+		this.cell="";
+	}
+
+	this.trackCell = function(d_id,d_cid){
+		this.reset();
+		var cells = getTrByAtt('data-id',d_id).childNodes;
+		for(var i=0;i<cells.length;i++){
+			if(cells[i].getAttribute('data-cid')==d_cid) {
+				var rect = cells[i].getBoundingClientRect();
+				this.x=rect.left;
+				this.y=rect.top;
+				this.w=rect.right-rect.left;
+				this.h=rect.bottom-rect.top;
+				this.text=cells[i].innerText;
+				this.cell=cells[i];
+			}
+		}
+
+		if(this.cell){
+			this.showHideMenue();///todo
+		}
+	}
+
+	this.showHideMenue = function(ele,x,y){
+		if(hasClass(ele,this.marker)){ this.eraseMarker(ele,x,y); }
+		if(ele.classList.contains(this.marker)){ this.eraseMarker(ele,x,y); }
+		else{ this.eraseMarker(this.now,x,y);this.now=ele;this.addMarker(this.now,x,y); }		
+	}
 }
+
+function showHide_popupTrackerMenu(isOn,x,y){	
+	var e=document.getElementById("popupTrackerMenu");
+	if(!e){return null;}
+	if(isOn){
+		log("turn on")
+		/*if(hasClass(e,'popupOff')){e.classList.remove('popupOff');}*/
+		//if(!hasClass(e,'popupOn')){e.classList.add('popupOn');}
+		if(!e.classList.contains("popupOn")){e.classList.add('popupOn');}
+		e.style.left = x+'px';
+		e.style.top = y+'px';
+	}
+	else{		
+		log("turn off")
+		//if(hasClass(e,'popupOn')){e.classList.remove('popupOn');}
+		if(e.classList.contains("popupOn")){e.classList.remove('popupOn');}
+
+		/*if(!hasClass(e,'popupOff')){e.classList.add('popupOff');}*/
+	}
+
+}
+
+
 
 
 
