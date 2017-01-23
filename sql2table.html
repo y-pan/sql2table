@@ -15,7 +15,7 @@ table.resultTable td{ border:1px solid black; }
 .highlight{
 	background-color: #ced1ff;	
 }
-.trackMarker{
+.cellOn{
 	font-style: italic;	
 	color:red;
 }
@@ -30,7 +30,7 @@ table.resultTable td{ border:1px solid black; }
 	opacity: .8;
 	width: 7em;
 	height:8em;
-	position: absolute;
+	position:absolute;
 	top:10px;
 	left:50px;
 	border-radius: 1em;
@@ -102,6 +102,7 @@ input.popupMenuBtn:hover{
 		<li><input id="popupCloseBtn" class="popupMenuBtn bgGray" type="button" value="Close"></li>
 	</ul>
 </span>
+<div id="scroll"></div>
 <script>
 // ==================== jQuery ==================
 
@@ -277,103 +278,117 @@ jQuery( document ).ready(function( $ ) {
       // need to know if same table name exists -> only append parser.getHtml('r') if exists
       $('tr.hiddenEnd').before(parser.getHtml('h'));
       $('tr.hiddenEnd').before(parser.getHtml('r'));
-			//parser.prepare();
-      //log(recorder.getLast());
+
 
   });// ***endOf btnConvert.click
   // event
 
   $( document ).on( 'mouseover', 'tr.responsable', function(event) {   $(this).addClass('highlight')	})
   						.on( 'mouseleave', 'tr.responsable', function(event) {   $(this).removeClass('highlight')	})
-  						/*.on( 'dblclick', 'tr.responsable', function(event) { d_id="";d_id = $(this).attr('data-id') })*/
   						.on( 'dblclick', 'tr.responsable>td,th', function(event){
   							var d_id = $(this).attr('data-id')
   							var d_cid = $(this).attr('data-cid');
 
-  							//tracker.track(element,px,py);
-
   							tracker.trackCell(d_id, d_cid)
   							log("cell@ "+tracker.x+","+tracker.y+","+tracker.w+","+tracker.h);
-  						})
+  						});
+  window.onscroll = function() {
+  	$('#scroll').text("screen.height="+document.body.scrollLeft+", documentElement.scrollLeft="+document.documentElement.scrollLeft);
+  };
 
 
 });
 // ======================================= end of main ============================================
 function cellTracker(){
-	this.now;
+
 	this.cell;
-	this.marker = "trackMarker";
+	this.d_id;
+	this.d_cid;
+
+	this.onClass = "cellOn"; // to be add to cell to show tracked/selected
 	this.x;
 	this.y;
 	this.w;
 	this.h;
 	this.text;
-	this.d_id;
-	this.d_cid;
-	
 
-	this.eraseMarker = function(ele,x,y){ if(ele){ele.className="";} showHide_popupTrackerMenu(false,x,y);} 	
-	this.addMarker = function(ele,x,y){ if(ele){ele.className=this.marker; showHide_popupTrackerMenu(true,x,y)}} 
+	this.isOpen;
+	this.keepOpen=false; // when editing/inserting/deleting, keepOpen=true, and shouldn't be interupted. only
+	this.close = function(){
+		this.keepOpen = false;
+		this.showHideMenue();
+	}
+	this.cellOnOff = function(isToBeOn){
+		if(this.keepOpen){ return null; }
+		if(!this.cell){ return null; }
+
+		if(isToBeOn){
+			if(!this.cell.classList.contains(this.onClass)) {this.cell.classList.add(this.onClass);}
+			this.isOpen=true;
+		}else{
+			if(this.cell.classList.contains(this.onClass)) {this.cell.classList.remove(this.onClass);}
+			this.isOpen=false;
+		}		
+	}
+	this.popupOnOff = function(isToBeOn){
+		if(this.keepOpen){ return null; }
+		if(!this.cell){ return null; }
+		var menu=document.getElementById("popupTrackerMenu");
+		if(!menu){ return null; }
+
+		if(isToBeOn){
+			if(!menu.classList.contains("popupOn")){menu.classList.add('popupOn');}
+			menu.style.left = this.x+document.documentElement.scrollLeft+'px';
+			menu.style.top = this.y+document.documentElement.scrollTop+'px';
+			//$(window).height(); 
+		}else{
+			if(menu.classList.contains("popupOn")){menu.classList.remove('popupOn');}
+		}		
+	}
 
 	this.reset = function(){
+		/*this.cellOnOff(false);*/
 		this.x="";
 		this.y="";
 		this.w="";
 		this.h="";
 		this.text="";
+		this.cell="";
 		this.d_id="";
 		this.d_cid="";
-		this.cell="";
 	}
-
 	this.trackCell = function(d_id,d_cid){
-		this.reset();
-		var cells = getTrByAtt('data-id',d_id).childNodes;
-		for(var i=0;i<cells.length;i++){
-			if(cells[i].getAttribute('data-cid')==d_cid) {
-				var rect = cells[i].getBoundingClientRect();
-				this.x=rect.left;
-				this.y=rect.top;
-				this.w=rect.right-rect.left;
-				this.h=rect.bottom-rect.top;
-				this.text=cells[i].innerText;
-				this.cell=cells[i];
+		
+		if(this.keepOpen){ return null; }
+
+		this.cellOnOff(false);
+		this.popupOnOff(false);
+		if(this.d_id == d_id && this.d_cid == d_cid){
+			this.reset();
+
+		}else{
+
+			this.reset();
+			this.d_id=d_id;
+			this.d_cid=d_cid;
+
+			var cells = getTrByAtt('data-id',this.d_id).childNodes;
+			for(var i=0;i<cells.length;i++){
+				if(cells[i].getAttribute('data-cid')==this.d_cid) {
+					var rect = cells[i].getBoundingClientRect();
+					this.x=rect.left;
+					this.y=rect.top;
+					this.w=rect.right-rect.left;
+					this.h=rect.bottom-rect.top;
+					this.text=cells[i].innerText;				
+					this.cell=cells[i];
+					i=+cells.length
+				}
 			}
-		}
-
-		if(this.cell){
-			this.showHideMenue();///todo
-		}
-	}
-
-	this.showHideMenue = function(ele,x,y){
-		if(hasClass(ele,this.marker)){ this.eraseMarker(ele,x,y); }
-		if(ele.classList.contains(this.marker)){ this.eraseMarker(ele,x,y); }
-		else{ this.eraseMarker(this.now,x,y);this.now=ele;this.addMarker(this.now,x,y); }		
+			if(this.cell){ this.cellOnOff(true); this.popupOnOff(true); }
+		}		
 	}
 }
-
-function showHide_popupTrackerMenu(isOn,x,y){	
-	var e=document.getElementById("popupTrackerMenu");
-	if(!e){return null;}
-	if(isOn){
-		log("turn on")
-		/*if(hasClass(e,'popupOff')){e.classList.remove('popupOff');}*/
-		//if(!hasClass(e,'popupOn')){e.classList.add('popupOn');}
-		if(!e.classList.contains("popupOn")){e.classList.add('popupOn');}
-		e.style.left = x+'px';
-		e.style.top = y+'px';
-	}
-	else{		
-		log("turn off")
-		//if(hasClass(e,'popupOn')){e.classList.remove('popupOn');}
-		if(e.classList.contains("popupOn")){e.classList.remove('popupOn');}
-
-		/*if(!hasClass(e,'popupOff')){e.classList.add('popupOff');}*/
-	}
-
-}
-
 
 
 
