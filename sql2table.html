@@ -33,7 +33,8 @@ table.resultTable td{ border:1px solid black; }
 	position:absolute;
 	top:10px;
 	left:50px;
-	border-radius: 1em;
+	border-bottom-left-radius: .5em;
+	border-bottom-right-radius: .5em;
 	display: none;
 }
 #popupTrackerMenu:hover{
@@ -87,6 +88,8 @@ input.popupMenuBtn:hover{
 
 <input type="text" class="csvText" style="width:100%">
 <input type="button" class="btnConvert" value="Convert">
+<input type="file" id="fileinput" class="fileinput">
+
 </div> 
 <div class="tableArea">
 	<form class="tableForm">
@@ -201,7 +204,8 @@ function sqlParser(){
 	  	this.tableName = cleanBracketString(this.tableName); 
 
 	  	this.state=2;  	
-  	} else { /*error state*/this.state=3; }
+	  	return this.state;
+  	} else { /*error state*/this.state=3; return this.state; }
       // can add updatePtn, deletePtn  	
   }
   this.getHtml = function(type='r'){
@@ -257,31 +261,106 @@ function getTrByAtt(attrName='data-id',attrValue){
 	return null;
 }
 
+
+
+  
 // =========================================== main ======================================
 $.noConflict();
 
 
 jQuery( document ).ready(function( $ ) {
+// 1
+  var parser = new sqlParser();
+  var recorder = new sqlRecorder();
+  var tracker = new cellTracker();
+  var lines;
+// 2 ?
+function readSingleFile(evt) {
+    //Retrieve the first (and only!) File from the FileList object
+    var f = evt.target.files[0];     
+    if (f) {
+      var r = new FileReader();
+      lines = "";
+      var loaded=[];
+      var ignores=[];
+      r.onload = function(e) {   
+	      var content = e.target.result;   //f.name,f.type,f.size
+        lines = content.split(/[\r\n]+/g); // tolerate both Windows and Unix linebreaks
+	      if(lines.length >0){
+	      	for(var i=0;i<lines.length;i++){
+	      		var feedback = parser.parse(lines[i]);
+	      		if(feedback==2){
+	      			recorder.add(parser.getJson());
+				      // need to know if same table name exists -> only append parser.getHtml('r') if exists
+				      $('tr.hiddenEnd').before(parser.getHtml('h'));
+				      $('tr.hiddenEnd').before(parser.getHtml('r'));
+				      loaded.push(i+1);
+	      		}else{
+	      			//log("line#"+ (i+1) +" ignored");
+	      			ignores.push(i+1);
+	      		}
+	      	}
+	      	if(ignores.length > 0){
+	      		log("Loaded "+loaded.length + "/"+ lines.length + " : "+ loaded+"\n"+
+	      			"Ignored "+ignores.length + "/"+ lines.length + " : "+ ignores)
+	      	}
+	      /*	lines.forEach(function(line) {
+	      		var feedback = parser.parse(line);
+	      		if(feedback==2){
+	      			recorder.add(parser.getJson());
+				      // need to know if same table name exists -> only append parser.getHtml('r') if exists
+				      $('tr.hiddenEnd').before(parser.getHtml('h'));
+				      $('tr.hiddenEnd').before(parser.getHtml('r'));
+				      line="";
+
+	      		}else{
+	      			log("a line ignored");
+	      		}
+	      	});*/
+	      }
+      }
+      r.readAsText(f);
+      //return lines;
+      log('File loaded');
+    } else {     	
+      alert("Failed to load file");
+      return null;
+    }
+  }
+
+// 3 events 
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		  //do your stuff!
+		  document.getElementById('fileinput').addEventListener('change', readSingleFile, false);
+		} else {
+			$('input.fileinput').css("text-decoration:line-through")
+		  alert('The File APIs are not fully supported by your browser.');
+		}
+
   //.containsExact("sometext") use like .text("sometext")
   $.expr[":"].containsExact = function (obj, index, meta, stack) {
       return (obj.textContent || obj.innerText || $(obj).text() || "") == meta[3];
   };
 
-  var parser = new sqlParser();
-  var recorder = new sqlRecorder();
-  var tracker = new cellTracker();
+// 4 UI actions
   //var cell = new CellFinder();
   $('input.btnConvert').click(function(){ // assume that always parsing complete sql statement(s)
-      var txt = $('input.csvText').val();
-      parser.parse(txt);
-      recorder.add(parser.getJson());
-      // need to know if same table name exists -> only append parser.getHtml('r') if exists
-      $('tr.hiddenEnd').before(parser.getHtml('h'));
-      $('tr.hiddenEnd').before(parser.getHtml('r'));
+      var $inputField = $('input.csvText');
+      var feedback = parser.parse($inputField.val());
+      if(feedback==2){  //3-err, 0-init, 1-prepare
+      	recorder.add(parser.getJson());
+	      // need to know if same table name exists -> only append parser.getHtml('r') if exists
+	      $('tr.hiddenEnd').before(parser.getHtml('h'));
+	      $('tr.hiddenEnd').before(parser.getHtml('r'));
 
-
+	      $inputField.val("");
+      }
+      
   });// ***endOf btnConvert.click
+
+  // *** endof btnUpload.click
   // event
+	
 
   $( document ).on( 'mouseover', 'tr.responsable', function(event) {   $(this).addClass('highlight')	})
   						.on( 'mouseleave', 'tr.responsable', function(event) {   $(this).removeClass('highlight')	})
@@ -339,7 +418,7 @@ function cellTracker(){
 		if(isToBeOn){
 			if(!menu.classList.contains("popupOn")){menu.classList.add('popupOn');}
 			menu.style.left = this.x+document.documentElement.scrollLeft+'px';
-			menu.style.top = this.y+document.documentElement.scrollTop+'px';
+			menu.style.top = this.y+this.h+document.documentElement.scrollTop+'px';
 			//$(window).height(); 
 		}else{
 			if(menu.classList.contains("popupOn")){menu.classList.remove('popupOn');}
