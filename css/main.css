@@ -1,0 +1,72 @@
+table {
+  border-collapse: collapse;
+}
+table.resultTable th{ border:1px solid black; }
+table.resultTable td{ border:1px solid black; }
+.hidden{ display:none; }
+.highlight{
+	background-color: #ced1ff;	
+}
+.cellOn{
+	font-style: italic;	
+	color:red;
+}
+.popupOn{
+	display: block !important;
+}
+.popupOff{
+	display: none !important;
+}
+#popupTrackerMenu{
+	background-color: #34dbca;
+	opacity: .8;
+	width: 7em;
+	height:8em;
+	position:absolute;
+	top:10px;
+	left:50px;
+	border-bottom-left-radius: .5em;
+	border-bottom-right-radius: .5em;
+	display: none;
+}
+#popupTrackerMenu:hover{
+	opacity: 1;
+}
+ul.plainMenu{
+	list-style-type:none;
+	padding: 1em;
+	margin:0;
+}
+ul.plainMenu li{
+	width:100%;
+}
+input.popupMenuBtn{
+		width:100%;	
+    border: none;
+    color: #fff;
+
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+}
+.bgGreen{
+	background-color: #54ba25;
+}
+.bgBlue{
+	background-color: #1a8899;
+}
+.bgRed{
+	background-color: #991a59;
+}
+.bgGray{
+	background-color: #3e3a42;
+}
+
+input.popupMenuBtn:hover{
+	-webkit-transition-duration: 0.2s; /* Safari */
+    transition-duration: 0.2s;
+	 	background-color: #fff; /* Green */
+    color: #000;
+}
+
