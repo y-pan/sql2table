@@ -13,14 +13,30 @@
 <body>
 
 <div>
-	<input type="text" class="csvText" style="width:100%">
-	<input type="button" class="btnConvert" value="Convert">
-	<input type="file" id="fileinput" class="fileinput">
+	<div>
+		<input type="button" class="btnConvert" value="Convert">
+		<input type="text" class="csvText" style="width:60%">
+	</div>	
+	<div>
+		<input type="file" id="fileinput" class="fileinput">
+	</div>
+	<div>  
+		<input id="btnSch" type="button" value="Search">
+		<input id="txtSchId" type="text" name="" placeholder="SearchBy Index (0-base)">
+		<input id="txtSchTName" type="text" name="" placeholder="SearchBy Table Name">
+		<input id="txtSchCName" type="text" name="" placeholder="SearchBy Column Name">
+		<input id="txtSchCValue" type="text" name="" placeholder="SearchBy Column Value">
+		<span>
+			<span>Rows: </span><span id="rowCount">0</span> <img class="refresh" src="img/refresh.png" style="width:20px;height:20px">
+		</span>
+	</div>
 </div> 
 
 <div class="tableArea">
 	<form class="tableForm">
-		<table class="resultTable"><tr class="hiddenEnd"></tr></table>
+		<table class="resultTable">
+			<!--<tr class="hiddenEnd"></tr>-->
+			</table>
 	</form>
 </div>
 
@@ -33,7 +49,8 @@
 		<li><input id="popupCloseBtn" class="popupMenuBtn bgGray" type="button" value="Close"></li>
 	</ul>
 </span>
-<div id="scroll"></div>
+	<div id="scroll"></div>
+
 
 </body>
 </html>

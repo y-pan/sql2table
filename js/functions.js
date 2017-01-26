@@ -1,7 +1,7 @@
 /**string of h1,h2,'h3,33',h4 => array of [h1,h2,'h3,33',h4]*/
 function str2arr(string,delim=','){
 	var arr = string.split(delim); var arr2 = []; var strBuilder = "";
-	for(var i=0;i<arr.length;i++){
+	for(var i=0,len=arr.length; i<len; i++){
 		if(arr[i].startsWith("'")){
 			if(arr[i].endsWith("'") && arr[i].length>1){ arr2.push(arr[i]); }			
 			else{	strBuilder=arr[i]; i++; if(i<arr.length){ strBuilder+=delim+arr[i];}	
@@ -19,8 +19,8 @@ function str2arr(string,delim=','){
 }
 /**array of [h1,h2,'h3,33',h4] => html of <th>h1</th><th>h2</th><th>'h3,33'</th><th>h4</th>  or <td>h1</td><td>h2</td><td>'h3,33'</td><td>h4</td> */
 function arr2cells(array,type='r',dataId){
-	var htm="";	switch(type){case 'h': for(var i=0;i<array.length;i++){htm+='<th data-id='+dataId+' data-cid='+i+'>'+array[i]+'</th>'};break;
-							 case 'r': for(var i=0;i<array.length;i++){htm+='<td data-id='+dataId+' data-cid='+i+'>'+array[i]+'</td>'};break; 
+	var htm="";	switch(type){case 'h': for(var i=0, len=array.length;i<len;i++){htm+='<th data-id='+dataId+' data-cid='+i+'>'+array[i]+'</th>'};break;
+							 case 'r': for(var i=0,len=array.length; i<len; i++){htm+='<td data-id='+dataId+' data-cid='+i+'>'+array[i]+'</td>'};break; 
 							 default:break;}	
 	return htm;
 }
@@ -28,7 +28,14 @@ function cleanBracketString(string){
 	var stringBuilder=string.toString().trim();	stringBuilder=stringBuilder.replace(/[()]/g, "");
  	return stringBuilder.toString().trim();
 }
-function log(str){ console.log(str); }
+function log(str1,str2=null){ 
+	if(str2){
+		console.log(str1 + " : " + str2);
+	}else{
+		console.log(str1); 
+	}
+	
+}
 
 
 /**
@@ -83,24 +90,32 @@ function sqlParser(){
 function sqlRecorder(){
 	this.records=[];
 	this.init = function(){ this.records=[]; }
-	this.add = function(json){ // json shoud be from sqlParser.getJson()
-		if(json){this.records.push(json);}
-	}
+//	this.add = function(json){ // json shoud be from sqlParser.getJson()
+//		if(json){this.records.push(json);}
+//	}
 	this.addJson2List = function(json){
 		if(json){this.records.push(json);return 1; }else{return null};
 	}
-	this.get = function(id=null){
-		if(!id){   return this.records;   } else {   var index = this.getIndexById(id);if(index){return this.records[index];}else{return null;}   }
-	}
+	//this.get = function(id=null){
+	//	if(!id){   return this.records;   } else {   var index = this.getIndexById(id);if(index){return this.records[index];}else{return null;}   }
+//	}
+
+
 	this.getIndexById = function(id){
-		for(var i=0;i<this.records.length;i++){  if(this.records[i].id==id){return i;}  };return null;
+		if(this.getSize() <=0 ) return null;
+
+		for(var i=0, len=this.getSize();i<len;i++){  if(this.records[i].id==id){return i;}  };return null;
 	}
-	this.getLastJson = function(){ return this.records[this.records.length-1]; }
+//	this.getLastJson = function(){ return this.records[this.records.length-1]; }
 	this.getLastHtms = function(){
+		if(this.getSize() <=0 ) return null;
 		return this.getHtmsByIndex(this.records.length-1);
 	}
 	this.getHtmsByIndex = function(i){
-		var rc=this.records[i];
+		var size = this.getSize();
+		if(size <=0 || size <= i || isNaN(i) || i < 0) { log("wrong index");return null;}
+
+		var rc=this.getItem(i);
 		var idx = rc.id;
   	var com = rc.command;
   	var tname = rc.tname;
@@ -110,6 +125,21 @@ function sqlRecorder(){
   	htmh="<tr data-id="+idx+" class='responsable'><th data-id="+idx+" data-cid='-2' class='hidden'>"+com+"</th><th data-id="+idx+" data-cid='-1' class='tbname'>"+tname+"</th>"+hhtm+"</tr>";
 		return [htmh,htmr];
   }
+  this.getAllHtms = function(){
+  	var result = [];
+  	for(var i=0,len=this.getSize(); i<len; i++){
+  		result.push(this.getHtmsByIndex(i)); 
+  	}
+  	return result;
+  }
+  this.getItem = function(i){
+  	//if(i>= this.getSize())
+  	return this.records[i];
+  }
+  this.getSize = function(){
+  	return this.records.length;
+  }
+
 } // ***endOf sqlRecorder
 
 function cellTracker(){
@@ -186,7 +216,7 @@ function cellTracker(){
 			this.d_cid=d_cid;
 
 			var cells = getTrByAtt('data-id',this.d_id).childNodes;
-			for(var i=0;i<cells.length;i++){
+			for(var i=0,len=cells.length; i<len; i++){
 				if(cells[i].getAttribute('data-cid')==this.d_cid) {
 					var rect = cells[i].getBoundingClientRect();
 					this.x=rect.left;
@@ -207,6 +237,6 @@ function cellTracker(){
 /**data-id for each row/tr is unique: 3h,3r*/
 function getTrByAtt(attrName='data-id',attrValue){
 	var rows=document.getElementsByTagName('TR');
-	for(var i=0;i<rows.length;i++){ if(rows[i].getAttribute(attrName)==attrValue) return rows[i] }
+	for(var i=0,len=rows.length;i<len;i++){ if(rows[i].getAttribute(attrName)==attrValue) return rows[i] }
 	return null;
 }
