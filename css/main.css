@@ -1,15 +1,43 @@
+body{
+
+
+    
+
+
+}
 table {
   border-collapse: collapse;
 }
-table.resultTable th{ border:1px solid black; }
-table.resultTable td{ border:1px solid black; }
+table.resultTable th{ border:1px solid black; text-align: center; font-family: 'Marcellus SC', serif; font-size: bold; }
+table.resultTable td{ border:1px solid black; text-align: center; font-family: 'Titillium Web', sans-serif;}
 .hidden{ display:none; }
+.alwaysHidden{
+	/*color:transparent;*/
+	display:none;
+}
+.headCell{
+
+    /*font-family: 'Handlee', cursive;*/
+	text-decoration: underline;
+	color:#0241d6;
+}
+.mhide{
+	opacity: 0.4;
+	background-color: gray;
+	opacity: 0.5;
+}
 .highlight{
 	background-color: #ced1ff;	
 }
 .cellOn{
 	font-style: italic;	
 	color:red;
+}
+.compareAlert1{
+	color:#dd2fe0;
+}
+.compareAlert2{
+	color:#ff0000;
 }
 .popupOn{
 	display: block !important;
