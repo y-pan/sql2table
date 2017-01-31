@@ -2,6 +2,11 @@
 <html>
 <head>
 <title>sql2table</title>
+
+
+
+<link href="https://fonts.googleapis.com/css?family=Handlee|Marcellus+SC|Titillium+Web" rel="stylesheet">
+
 <link rel="stylesheet" type="text/css" href="css/main.css">
 <script src="js/lib/jquery-3.1.1.min.js"></script>
 <script src="js/functions.js"></script>
@@ -21,15 +26,25 @@
 		<input type="file" id="fileinput" class="fileinput">
 	</div>
 	<div>  
+		Selector 1:
 		<input id="btnSch" type="button" value="Search">
-		<input id="txtSchId" type="text" name="" placeholder="SearchBy Index (0-base)">
-		<input id="txtSchTName" type="text" name="" placeholder="SearchBy Table Name">
-		<input id="txtSchCName" type="text" name="" placeholder="SearchBy Column Name">
-		<input id="txtSchCValue" type="text" name="" placeholder="SearchBy Column Value">
+		<input id="txtSchId" type="text" name="" placeholder="Show Rows by Index (0-base)">
+		<input id="txtSchTName" type="text" name="" placeholder="Show Rows by Table Name">
+		<input id="txtSchCName" type="text" name="" placeholder="Show Rows by Column Name">
+		<input id="txtSchCValue" type="text" name="" placeholder="Show Rows by Column Value">
+		
 		<span>
-			<span>Rows: </span><span id="rowCount">0</span> <img class="refresh" src="img/refresh.png" style="width:20px;height:20px">
+			<span>Records: </span><span id="rowCount">0</span> <span> -> filtered: </span><span id="rowCount2">0</span> <span> -> alert: </span><span id="alertCount" class="compareAlert2">0</span>
+			 <img class="refresh" src="img/refresh.png" style="width:20px;height:20px">
 		</span>
 	</div>
+	<div>
+		Selector 2:
+		<input id="txtShowCol" type="text" name="" placeholder="Show Columns by Column Name">
+		<span><input id="exc_grayout" type="radio" name="exclusion" value="grayout">Grayout excluded</span>
+		<span><input id="exc_hide" type="radio" name="exclusion" value="hide">Hide excluded</span>
+	</div>
+
 </div> 
 
 <div class="tableArea">
@@ -45,7 +60,7 @@
 		<li><input id="popupEditBtn" class="popupMenuBtn bgGreen" type="button" value="Edit Cell"><input id="popupEditText" class="hidden" type="text" name=""></li>
 		<li><input id="popupAddBtn" class="popupMenuBtn bgBlue" type="button" value="Add Cell"></li>
 		<li><input id="popupDeleteBtn" class="popupMenuBtn bgRed" type="button" value="Delete Cell"></li>
-		<hr>
+		<!--<hr>-->
 		<li><input id="popupCloseBtn" class="popupMenuBtn bgGray" type="button" value="Close"></li>
 	</ul>
 </span>
